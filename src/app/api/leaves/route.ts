@@ -1,7 +1,6 @@
 import { NextResponse } from "next/server";
 import { pool } from "@/lib/db";
 import { getCurrentUserWithRole } from "@/lib/roles";
-import { clerkClient } from "@clerk/nextjs/server";
 
 export async function GET(req: Request) {
   const user = await getCurrentUserWithRole();

@@ -1,14 +1,15 @@
-import { auth, currentUser } from "@clerk/nextjs/server";
+import { auth } from "@clerk/nextjs/server";
+import { clerkClient } from "@clerk/nextjs/server";
 
 export async function getCurrentUserWithRole() {
   const { userId } = await auth();
-
   if (!userId) return null;
 
-  const user = await currentUser();
+  const client = await clerkClient();
+  const user = await client.users.getUser(userId);
 
   return {
-    id: user?.id,
-    role: user?.publicMetadata?.role || "employee",
+    id: userId,
+    role: user.publicMetadata?.role || "employee",
   };
 }
