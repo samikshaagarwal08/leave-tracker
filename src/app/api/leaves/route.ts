@@ -13,23 +13,22 @@ export async function GET(req: Request) {
   const from = searchParams.get("from");
   const to = searchParams.get("to");
 
-  let baseQuery = `SELECT * FROM leaves WHERE 1=1`;
+  let baseQuery = `SELECT * FROM leaves WHERE user_id = $1`;
   const values: any[] = [];
 
-  // 🔹 ROLE LOGIC
-  if (user.role === "admin") {
-    if (userIdParam && userIdParam !== "me") {
-      baseQuery += ` AND user_id = $${values.length + 1}`;
-      values.push(userIdParam);
-    }
-  } else {
-    baseQuery += ` AND user_id = $${values.length + 1}`;
-    values.push(user.id);
+  // 🔹 ALWAYS default to current user
+  let targetUserId = user.id;
+
+  // 🔹 Admin can override if explicitly provided
+  if (user.role === "admin" && userIdParam && userIdParam !== "me") {
+    targetUserId = userIdParam;
   }
 
-  // 🔹 DATE FILTER
+  values.push(targetUserId);
+
+  // 🔹 Date filter
   if (from && to) {
-    baseQuery += ` AND leave_date BETWEEN $${values.length + 1} AND $${values.length + 2}`;
+    baseQuery += ` AND leave_date BETWEEN $2 AND $3`;
     values.push(from, to);
   }
 
@@ -37,29 +36,9 @@ export async function GET(req: Request) {
 
   const result = await pool.query(baseQuery, values);
 
-  // 🔹 Enrich with name for admin
-  if (user.role === "admin") {
-    const client = await clerkClient();
-
-    const enriched = await Promise.all(
-      result.rows.map(async (leave: any) => {
-        const clerkUser = await client.users.getUser(leave.user_id);
-
-        return {
-          ...leave,
-          employeeName:
-            clerkUser.firstName && clerkUser.lastName
-              ? `${clerkUser.firstName} ${clerkUser.lastName}`
-              : clerkUser.emailAddresses[0]?.emailAddress,
-        };
-      }),
-    );
-
-    return NextResponse.json(enriched);
-  }
-
   return NextResponse.json(result.rows);
 }
+
 
 export async function POST(req: Request) {
   const user = await getCurrentUserWithRole();
