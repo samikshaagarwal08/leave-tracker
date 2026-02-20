@@ -1,7 +1,5 @@
-import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import { ClerkProvider } from '@clerk/nextjs'
-import "./globals.css";
 import Header from "@/components/Header";
 
 const geistSans = Geist({
@@ -14,10 +12,7 @@ const geistMono = Geist_Mono({
   subsets: ["latin"],
 });
 
-export const metadata: Metadata = {
-  title: "Leave Management",
-  description: "",
-};
+
 
 export default function RootLayout({
   children,
@@ -28,7 +23,7 @@ export default function RootLayout({
     <ClerkProvider>
       <html lang="en">
         <body className={`${geistSans.variable} ${geistMono.variable} antialiased`}>
-          {/* <Header /> */}
+          <Header />
           {children}
         </body>
       </html>
