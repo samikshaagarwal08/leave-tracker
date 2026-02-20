@@ -20,7 +20,7 @@ export default function CalendarView() {
   const [status, setStatus] = useState("planned");
 
   async function loadData() {
-    const leavesRes = await fetch("/api/leaves");
+    const leavesRes = await fetch("/api/leaves?userId=all");
     const leaves = await leavesRes.json();
 
     const formatted = leaves.map((leave: any) => ({

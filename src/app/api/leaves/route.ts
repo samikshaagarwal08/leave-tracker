@@ -2,6 +2,8 @@ import { NextResponse } from "next/server";
 import { pool } from "@/lib/db";
 import { getCurrentUserWithRole } from "@/lib/roles";
 
+import { clerkClient } from "@clerk/nextjs/server";
+
 export async function GET(req: Request) {
   const user = await getCurrentUserWithRole();
   if (!user)
@@ -12,32 +14,59 @@ export async function GET(req: Request) {
   const from = searchParams.get("from");
   const to = searchParams.get("to");
 
-  let baseQuery = `SELECT * FROM leaves WHERE user_id = $1`;
+  let query = `SELECT * FROM leaves WHERE user_id = $1`;
   const values: any[] = [];
-
-  // 🔹 ALWAYS default to current user
   let targetUserId = user.id;
 
-  // 🔹 Admin can override if explicitly provided
-  if (user.role === "admin" && userIdParam && userIdParam !== "me") {
+  // 🔹 ADMIN requesting ALL employees
+  if (user.role === "admin" && userIdParam === "all") {
+    query = `SELECT * FROM leaves WHERE 1=1`;
+  }
+  // 🔹 ADMIN requesting specific employee
+  else if (user.role === "admin" && userIdParam && userIdParam !== "me") {
     targetUserId = userIdParam;
   }
 
-  values.push(targetUserId);
+  if (query.includes("$1")) {
+    values.push(targetUserId);
+  }
 
   // 🔹 Date filter
   if (from && to) {
-    baseQuery += ` AND leave_date BETWEEN $2 AND $3`;
+    query += query.includes("WHERE 1=1")
+      ? ` AND leave_date BETWEEN $${values.length + 1} AND $${values.length + 2}`
+      : ` AND leave_date BETWEEN $2 AND $3`;
+
     values.push(from, to);
   }
 
-  baseQuery += ` ORDER BY leave_date ASC`;
+  query += ` ORDER BY leave_date ASC`;
 
-  const result = await pool.query(baseQuery, values);
+  const result = await pool.query(query, values);
+
+  // 🔥 IMPORTANT: Enrich ONLY for admin ALL mode
+  if (user.role === "admin" && userIdParam === "all") {
+    const client = await clerkClient();
+
+    const enriched = await Promise.all(
+      result.rows.map(async (leave: any) => {
+        const clerkUser = await client.users.getUser(leave.user_id);
+
+        return {
+          ...leave,
+          employeeName:
+            clerkUser.firstName && clerkUser.lastName
+              ? `${clerkUser.firstName} ${clerkUser.lastName}`
+              : clerkUser.emailAddresses[0]?.emailAddress,
+        };
+      })
+    );
+
+    return NextResponse.json(enriched);
+  }
 
   return NextResponse.json(result.rows);
 }
-
 
 export async function POST(req: Request) {
   const user = await getCurrentUserWithRole();
