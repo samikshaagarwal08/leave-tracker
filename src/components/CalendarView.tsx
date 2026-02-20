@@ -5,11 +5,11 @@ import dayGridPlugin from "@fullcalendar/daygrid";
 import interactionPlugin from "@fullcalendar/interaction";
 import { useEffect, useState } from "react";
 import Button from "@/components/ui/Button";
-import { text } from "stream/consumers";
 
 export default function CalendarView() {
   const [events, setEvents] = useState<any[]>([]);
   const [employees, setEmployees] = useState<any[]>([]);
+
   const [selectedEmployee, setSelectedEmployee] = useState("");
   const [selectedDate, setSelectedDate] = useState<string | null>(null);
   const [editingLeave, setEditingLeave] = useState<any>(null);
@@ -19,26 +19,29 @@ export default function CalendarView() {
   const [reason, setReason] = useState("");
   const [status, setStatus] = useState("planned");
 
+  // ================= LOAD DATA =================
   async function loadData() {
+    // 🔹 Get ALL leaves for admin
     const leavesRes = await fetch("/api/leaves?userId=all");
     const leaves = await leavesRes.json();
 
     const formatted = leaves.map((leave: any) => ({
       id: leave.id,
-      title: `${leave.employeeName} - ${
+      title: `${leave.employeeName || "Unknown"} - ${
         leave.leave_type === "half"
           ? leave.half_day_type === "first"
             ? "First Half"
             : "Second Half"
           : "Full Day"
       }`,
-
       start: leave.leave_date,
       allDay: true,
-      backgroundColor: leave.status === "taken" ? "#4ade80" : "#facc15",
+      backgroundColor:
+        leave.status === "taken" ? "#4ade80" : "#facc15",
       textColor: "#000",
       extendedProps: {
         userId: leave.user_id,
+        employeeName: leave.employeeName,
         leaveType: leave.leave_type,
         halfDayType: leave.half_day_type,
         reason: leave.reason,
@@ -48,6 +51,7 @@ export default function CalendarView() {
 
     setEvents(formatted);
 
+    // 🔹 Get employee list
     const summaryRes = await fetch("/api/admin/summary");
     const summary = await summaryRes.json();
     setEmployees(summary);
@@ -57,24 +61,24 @@ export default function CalendarView() {
     loadData();
   }, []);
 
+  // ================= CLICK EMPTY DATE =================
   function handleDateClick(info: any) {
-    if (!selectedEmployee) {
-      alert("Select employee first");
-      return;
-    }
-
     setEditingLeave(null);
     setSelectedDate(info.dateStr);
+
+    setSelectedEmployee(""); // reset
     setLeaveType("full");
     setHalfDayType("first");
     setReason("");
     setStatus("planned");
   }
 
+  // ================= CLICK EXISTING EVENT =================
   function handleEventClick(info: any) {
     const event = info.event;
 
     setEditingLeave({ id: event.id });
+
     setSelectedEmployee(event.extendedProps.userId);
     setSelectedDate(event.startStr);
     setLeaveType(event.extendedProps.leaveType || "full");
@@ -83,7 +87,13 @@ export default function CalendarView() {
     setStatus(event.extendedProps.status || "planned");
   }
 
+  // ================= SAVE =================
   async function saveLeave() {
+    if (!editingLeave && !selectedEmployee) {
+      alert("Please select employee");
+      return;
+    }
+
     await fetch("/api/leaves", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -101,6 +111,7 @@ export default function CalendarView() {
     await loadData();
   }
 
+  // ================= DELETE =================
   async function deleteLeave() {
     if (!editingLeave) return;
 
@@ -121,7 +132,7 @@ export default function CalendarView() {
 
   return (
     <div className="space-y-6">
-      {/* Calendar */}
+      {/* CALENDAR */}
       <div className="bg-white rounded-xl shadow p-6">
         <FullCalendar
           plugins={[dayGridPlugin, interactionPlugin]}
@@ -133,7 +144,7 @@ export default function CalendarView() {
         />
       </div>
 
-      {/* Modal */}
+      {/* MODAL */}
       {selectedDate && (
         <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
           <div className="bg-white p-6 rounded-xl w-96 space-y-4">
@@ -141,6 +152,35 @@ export default function CalendarView() {
               {editingLeave ? "Edit Leave" : "Add Leave"}
             </h2>
 
+            {/* 🔹 EMPLOYEE SELECT (ONLY WHEN ADDING) */}
+            {!editingLeave && (
+              <select
+                className="border p-2 w-full rounded"
+                value={selectedEmployee}
+                onChange={(e) => setSelectedEmployee(e.target.value)}
+              >
+                <option value="">Select Employee</option>
+                {employees.map((emp: any) => (
+                  <option key={emp.id} value={emp.id}>
+                    {emp.name}
+                  </option>
+                ))}
+              </select>
+            )}
+
+            {/* 🔹 Show employee name when editing */}
+            {editingLeave && (
+              <div className="text-sm text-gray-500">
+                Employee:{" "}
+                {
+                  employees.find(
+                    (e: any) => e.id === selectedEmployee
+                  )?.name
+                }
+              </div>
+            )}
+
+            {/* Leave Type */}
             <select
               className="border p-2 w-full rounded"
               value={leaveType}
@@ -150,6 +190,7 @@ export default function CalendarView() {
               <option value="half">Half Day</option>
             </select>
 
+            {/* Half Day Option */}
             {leaveType === "half" && (
               <select
                 className="border p-2 w-full rounded"
@@ -161,6 +202,7 @@ export default function CalendarView() {
               </select>
             )}
 
+            {/* Status */}
             <select
               className="border p-2 w-full rounded"
               value={status}
@@ -170,6 +212,7 @@ export default function CalendarView() {
               <option value="taken">Taken</option>
             </select>
 
+            {/* Reason */}
             <textarea
               placeholder="Reason"
               className="border p-2 w-full rounded"
