@@ -8,10 +8,15 @@ import {
   useUser,
 } from "@clerk/nextjs";
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 
 const Header = () => {
   // useUser is a client-side hook that provides the signed-in user and metadata
   const { user } = useUser();
+  const pathname = usePathname();
+
+  const isAdmin = user?.publicMetadata?.role === "admin";
+  const isAdminPage = pathname.startsWith("/admin");
 
   return (
     <div className="flex flex-row w-full mx-auto justify-between items-center px-10 py-4 h-16 shadow-sm bg-white">
@@ -24,16 +29,26 @@ const Header = () => {
         <SignedIn>
           <UserButton />
         </SignedIn>
-        {user && user.publicMetadata?.role === "admin" && (
-        <button className="bg-red-600 text-white rounded-sm py-2 px-3">
-          <Link href="/admin" className="text-base font-medium ">
-            Admin Dashboard
-          </Link>
-        </button>
-      )}
+        {isAdmin && (
+          <>
+            {!isAdminPage ? (
+              <Link
+                href="/admin"
+                className="bg-red-600 cursor-pointer text-white rounded-sm py-2 px-4 text-sm font-medium"
+              >
+                Admin Dashboard
+              </Link>
+            ) : (
+              <Link
+                href="/dashboard"
+                className="bg-red-600 cursor-pointer text-white rounded-sm py-2 px-4 text-sm font-medium"
+              >
+                User Dashboard
+              </Link>
+            )}
+          </>
+        )}
       </div>
-
-      
     </div>
   );
 };

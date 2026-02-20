@@ -4,6 +4,7 @@ import FullCalendar from "@fullcalendar/react";
 import dayGridPlugin from "@fullcalendar/daygrid";
 import interactionPlugin from "@fullcalendar/interaction";
 import { useEffect, useState } from "react";
+import Button from "@/components/ui/Button";
 import { text } from "stream/consumers";
 
 export default function CalendarView() {
@@ -178,28 +179,19 @@ export default function CalendarView() {
 
             <div className="flex justify-between pt-4">
               {editingLeave && (
-                <button
-                  onClick={deleteLeave}
-                  className="px-4 py-2 bg-red-500 text-white rounded"
-                >
+                <Button variant="danger" onClick={deleteLeave}>
                   Delete
-                </button>
+                </Button>
               )}
 
               <div className="flex gap-3 ml-auto">
-                <button
-                  onClick={closeModal}
-                  className="px-4 py-2 border rounded"
-                >
+                <Button onClick={closeModal} variant="outline">
                   Cancel
-                </button>
+                </Button>
 
-                <button
-                  onClick={saveLeave}
-                  className="px-4 py-2 bg-black text-white rounded"
-                >
+                <Button onClick={saveLeave} variant="primary">
                   Save
-                </button>
+                </Button>
               </div>
             </div>
           </div>

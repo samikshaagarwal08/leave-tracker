@@ -8,16 +8,16 @@ export default function AdminDashboard() {
   const [tab, setTab] = useState("calendar");
 
   return (
-    <div className="mx-10 my-12 space-y-8">
-      <h1 className="text-3xl font-semibold">Admin Dashboard</h1>
+    <div className="mx-10 my-6 space-y-4">
+      <h1 className="text-2xl font-semibold text-center">Admin Dashboard</h1>
 
-      <div className="flex gap-6 border-b">
+      <div className="flex justify-center gap-4 border-b text-lg">
         <button
           onClick={() => setTab("calendar")}
-          className={`pb-2 ${
+          className={`cursor-pointer w-1/2 border border-b-0 rounded-t-md font-semibold px-2 py-1  ${
             tab === "calendar"
-              ? "border-b-2 border-black font-semibold"
-              : "text-gray-500"
+              ? "border-amber-500 bg-amber-100 "
+              : "text-black border-black"
           }`}
         >
           Calendar
@@ -25,10 +25,10 @@ export default function AdminDashboard() {
 
         <button
           onClick={() => setTab("employees")}
-          className={`pb-2 ${
+          className={`cursor-pointer w-1/2 border border-b-0 px-2 py-1 rounded-t-md font-semibold ${
             tab === "employees"
-              ? "border-b-2 border-black font-semibold"
-              : "text-gray-500"
+              ? "border-amber-500 bg-amber-100"
+              : "text-black border-black"
           }`}
         >
           Employees
