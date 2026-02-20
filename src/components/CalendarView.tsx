@@ -6,65 +6,80 @@ import interactionPlugin from "@fullcalendar/interaction";
 import { useEffect, useState } from "react";
 import { text } from "stream/consumers";
 
-export default function Dashboard() {
+export default function CalendarView() {
   const [events, setEvents] = useState<any[]>([]);
+  const [employees, setEmployees] = useState<any[]>([]);
+  const [selectedEmployee, setSelectedEmployee] = useState("");
   const [selectedDate, setSelectedDate] = useState<string | null>(null);
+  const [editingLeave, setEditingLeave] = useState<any>(null);
+
   const [leaveType, setLeaveType] = useState("full");
   const [halfDayType, setHalfDayType] = useState("first");
   const [reason, setReason] = useState("");
-  const [editingLeave, setEditingLeave] = useState<any>(null);
+  const [status, setStatus] = useState("planned");
 
-  async function loadLeaves() {
-    const res = await fetch("/api/leaves");
-    const data = await res.json();
+  async function loadData() {
+    const leavesRes = await fetch("/api/leaves");
+    const leaves = await leavesRes.json();
 
-    const formatted = data.map((leave: any) => ({
+    const formatted = leaves.map((leave: any) => ({
       id: leave.id,
-      title:
+      title: `${leave.employeeName} - ${
         leave.leave_type === "half"
           ? leave.half_day_type === "first"
             ? "First Half"
             : "Second Half"
-          : "Full Day",
+          : "Full Day"
+      }`,
+
       start: leave.leave_date,
       allDay: true,
       backgroundColor: leave.status === "taken" ? "#4ade80" : "#facc15",
       textColor: "#000",
       extendedProps: {
+        userId: leave.user_id,
         leaveType: leave.leave_type,
         halfDayType: leave.half_day_type,
         reason: leave.reason,
+        status: leave.status,
       },
     }));
 
     setEvents(formatted);
+
+    const summaryRes = await fetch("/api/admin/summary");
+    const summary = await summaryRes.json();
+    setEmployees(summary);
   }
 
   useEffect(() => {
-    loadLeaves();
+    loadData();
   }, []);
 
-  // 👉 Click empty date
   function handleDateClick(info: any) {
+    if (!selectedEmployee) {
+      alert("Select employee first");
+      return;
+    }
+
     setEditingLeave(null);
     setSelectedDate(info.dateStr);
     setLeaveType("full");
     setHalfDayType("first");
     setReason("");
+    setStatus("planned");
   }
 
-  // 👉 Click existing leave
   function handleEventClick(info: any) {
     const event = info.event;
 
-    setEditingLeave({
-      id: event.id,
-    });
-
+    setEditingLeave({ id: event.id });
+    setSelectedEmployee(event.extendedProps.userId);
     setSelectedDate(event.startStr);
     setLeaveType(event.extendedProps.leaveType || "full");
     setHalfDayType(event.extendedProps.halfDayType || "first");
     setReason(event.extendedProps.reason || "");
+    setStatus(event.extendedProps.status || "planned");
   }
 
   async function saveLeave() {
@@ -76,11 +91,13 @@ export default function Dashboard() {
         leaveType,
         halfDayType,
         reason,
+        status,
+        targetUserId: selectedEmployee,
       }),
     });
 
     closeModal();
-    await loadLeaves();
+    await loadData();
   }
 
   async function deleteLeave() {
@@ -93,7 +110,7 @@ export default function Dashboard() {
     });
 
     closeModal();
-    await loadLeaves();
+    await loadData();
   }
 
   function closeModal() {
@@ -102,26 +119,29 @@ export default function Dashboard() {
   }
 
   return (
-    <div className="my-12 mx-10 p-6 bg-white rounded-xl shadow">
-      <FullCalendar
-        plugins={[dayGridPlugin, interactionPlugin]}
-        initialView="dayGridMonth"
-        events={events}
-        dateClick={handleDateClick}
-        eventClick={handleEventClick}
-        height="auto"
-      />
+    <div className="space-y-6">
+      {/* Calendar */}
+      <div className="bg-white rounded-xl shadow p-6">
+        <FullCalendar
+          plugins={[dayGridPlugin, interactionPlugin]}
+          initialView="dayGridMonth"
+          events={events}
+          dateClick={handleDateClick}
+          eventClick={handleEventClick}
+          height="auto"
+        />
+      </div>
 
+      {/* Modal */}
       {selectedDate && (
         <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
-          <div className="bg-white p-6 rounded-xl w-96">
-            <h2 className="text-lg font-semibold mb-4">
-              {editingLeave ? "Edit Leave" : "Add Leave"} — {selectedDate}
+          <div className="bg-white p-6 rounded-xl w-96 space-y-4">
+            <h2 className="text-lg font-semibold">
+              {editingLeave ? "Edit Leave" : "Add Leave"}
             </h2>
 
-            {/* Leave Type */}
             <select
-              className="border p-2 w-full mb-3"
+              className="border p-2 w-full rounded"
               value={leaveType}
               onChange={(e) => setLeaveType(e.target.value)}
             >
@@ -129,10 +149,9 @@ export default function Dashboard() {
               <option value="half">Half Day</option>
             </select>
 
-            {/* Half Day Option */}
             {leaveType === "half" && (
               <select
-                className="border p-2 w-full mb-3"
+                className="border p-2 w-full rounded"
                 value={halfDayType}
                 onChange={(e) => setHalfDayType(e.target.value)}
               >
@@ -141,15 +160,23 @@ export default function Dashboard() {
               </select>
             )}
 
-            {/* Reason */}
+            <select
+              className="border p-2 w-full rounded"
+              value={status}
+              onChange={(e) => setStatus(e.target.value)}
+            >
+              <option value="planned">Planned</option>
+              <option value="taken">Taken</option>
+            </select>
+
             <textarea
               placeholder="Reason"
-              className="border p-2 w-full mb-3"
+              className="border p-2 w-full rounded"
               value={reason}
               onChange={(e) => setReason(e.target.value)}
             />
 
-            <div className="flex justify-between mt-4">
+            <div className="flex justify-between pt-4">
               {editingLeave && (
                 <button
                   onClick={deleteLeave}

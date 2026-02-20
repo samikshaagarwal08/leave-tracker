@@ -1,30 +1,42 @@
-import { getCurrentUserWithRole } from "@/lib/roles";
-import { redirect } from "next/navigation";
-import { pool } from "@/lib/db";
+"use client";
 
-export default async function AdminPage() {
-  const user = await getCurrentUserWithRole();
+import CalendarView from "@/components/CalendarView";
+import EmployeeList from "@/components/EmployeeList";
+import { useState } from "react";
 
-  if (user?.role !== "admin") {
-    redirect("/dashboard");
-  }
-
-  const result = await pool.query(`
-    SELECT user_id, COUNT(*) as total
-    FROM leaves
-    WHERE status = 'taken'
-    GROUP BY user_id
-  `);
+export default function AdminDashboard() {
+  const [tab, setTab] = useState("calendar");
 
   return (
-    <div className="p-10">
-      <h1 className="text-2xl font-bold mb-5">Admin Dashboard</h1>
+    <div className="mx-10 my-12 space-y-8">
+      <h1 className="text-3xl font-semibold">Admin Dashboard</h1>
 
-      {result.rows.map((row: any) => (
-        <div key={row.user_id}>
-          {row.user_id} → {row.total} leaves taken
-        </div>
-      ))}
+      <div className="flex gap-6 border-b">
+        <button
+          onClick={() => setTab("calendar")}
+          className={`pb-2 ${
+            tab === "calendar"
+              ? "border-b-2 border-black font-semibold"
+              : "text-gray-500"
+          }`}
+        >
+          Calendar
+        </button>
+
+        <button
+          onClick={() => setTab("employees")}
+          className={`pb-2 ${
+            tab === "employees"
+              ? "border-b-2 border-black font-semibold"
+              : "text-gray-500"
+          }`}
+        >
+          Employees
+        </button>
+      </div>
+
+      {tab === "calendar" && <CalendarView />}
+      {tab === "employees" && <EmployeeList />}
     </div>
   );
 }

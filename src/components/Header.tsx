@@ -1,24 +1,41 @@
-import { SignedIn, SignedOut, SignInButton, SignUpButton, UserButton } from '@clerk/nextjs'
-import React from 'react'
+"use client";
+
+import {
+  SignedIn,
+  SignedOut,
+  SignInButton,
+  UserButton,
+  useUser,
+} from "@clerk/nextjs";
+import Link from "next/link";
 
 const Header = () => {
-    return (
-        <header className="flex justify-end items-center p-4 gap-4 h-16 shadow-sm">
-            {/* Show the sign-in and sign-up buttons when the user is signed out */}
-            <SignedOut>
-                <SignInButton />
-                {/* <SignUpButton>
-                    <button className="bg-[#6c47ff] text-white rounded-full font-medium text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 cursor-pointer">
-                        Sign Up
-                    </button>
-                </SignUpButton> */}
-            </SignedOut>
-            {/* Show the user button when the user is signed in */}
-            <SignedIn>
-                <UserButton />
-            </SignedIn>
-        </header>
-    )
-}
+  // useUser is a client-side hook that provides the signed-in user and metadata
+  const { user } = useUser();
 
-export default Header
+  return (
+    <div className="flex flex-row w-full mx-auto justify-between items-center px-10 py-4 h-16 shadow-sm bg-white">
+      <h1 className="font-bold text-2xl">Leaves Tracker</h1>
+
+      <div className="flex justify-center items-center p-4 gap-6">
+        <SignedOut>
+          <SignInButton />
+        </SignedOut>
+        <SignedIn>
+          <UserButton />
+        </SignedIn>
+        {user && user.publicMetadata?.role === "admin" && (
+        <button className="bg-red-600 text-white rounded-sm py-2 px-3">
+          <Link href="/admin" className="text-base font-medium ">
+            Admin Dashboard
+          </Link>
+        </button>
+      )}
+      </div>
+
+      
+    </div>
+  );
+};
+
+export default Header;
