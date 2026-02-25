@@ -140,7 +140,7 @@ export default function CalendarView() {
           events={events}
           dateClick={handleDateClick}
           eventClick={handleEventClick}
-          height="auto"
+          height="500px"
         />
       </div>
 

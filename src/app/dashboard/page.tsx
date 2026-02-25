@@ -186,7 +186,7 @@ export default function Dashboard() {
           events={events}
           dateClick={handleDateClick}
           eventClick={handleEventClick}
-          height="auto"
+          height="500px"
         />
       </div>
 
